@@ -20,32 +20,28 @@
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-
         h1 {
             text-align: center;
             color: #FB923C;
         }
-
         h3 {
             text-align: center;
             margin-top: -20px;
             margin-bottom: 40px;
         }
-
         form {
             display: flex;
             flex-direction: column;
             gap: 15px;
         }
-
         textarea {
             height: 150px;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
             font-size: 16px;
+            resize: vertical; /* ✅ allow user to resize */
         }
-
         button {
             background-color: #FB923C;
             color: white;
@@ -54,23 +50,26 @@
             font-size: 16px;
             cursor: pointer;
             border-radius: 5px;
+            transition: background-color 0.2s; /* ✅ smooth hover */
         }
-
         button:hover {
             background-color: #F97316;
         }
-
+        button:disabled {
+            background-color: #ccc;   /* ✅ visual disabled state */
+            cursor: not-allowed;
+        }
         #summary-output {
+            display: none;            /* ✅ hidden initially */
             margin-top: 20px;
             background: #FFEDD5;
             padding: 15px;
             border-radius: 5px;
             border: 1px solid #ccc;
         }
-
         #summary-heading {
-            margin-top: 0px;
-            margin-bottom: 0px;
+            margin-top: 0;
+            margin-bottom: 0;
         }
     </style>
 </head>
@@ -81,7 +80,7 @@
         <p>Write or Paste your content below for quick summarization.</p>
 
         <form id="summarization-form">
-            <textarea id="dialogue-input" placeholder="Enter your content here..." required></textarea>
+            <textarea id="dialogue-input" placeholder="Enter at least 50 characters..." required></textarea>
             <button type="submit">Summarize</button>
         </form>
 
@@ -94,36 +93,51 @@
     <script>
         document.getElementById("summarization-form").addEventListener("submit", async (e) => {
             e.preventDefault();
-        
+
             const dialogueInput = document.getElementById("dialogue-input");
             const summaryText = document.getElementById("summary-text");
+            const summaryOutput = document.getElementById("summary-output");
             const submitButton = e.target.querySelector("button");
-        
+
             const dialogue = dialogueInput.value.trim();
-            if (!dialogue) return;
-        
+
+            // ✅ Min length validation
+            if (dialogue.length < 50) {
+                summaryText.innerText = "Please enter at least 50 characters to summarize.";
+                summaryOutput.style.display = "block";
+                return;
+            }
+
+            summaryOutput.style.display = "block";       // ✅ show output box
             summaryText.innerText = "Processing...";
             submitButton.disabled = true;
-        
+            submitButton.textContent = "Summarizing..."; // ✅ button feedback
+
             try {
                 const response = await fetch("/summarize/", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ dialogue }),
                 });
-        
+
                 if (!response.ok) {
                     throw new Error(`Server error: ${response.status}`);
                 }
-        
+
                 const data = await response.json();
-                summaryText.innerText = data.summary || "No summary returned.";
+
+                // ✅ Handle backend error response
+                if (data.error) {
+                    summaryText.innerText = `Error: ${data.error}`;
+                } else {
+                    summaryText.innerText = data.summary || "No summary returned.";
+                }
+
             } catch (err) {
-                
                 summaryText.innerText = `Error: ${err.message}`;
             } finally {
-                
                 submitButton.disabled = false;
+                submitButton.textContent = "Summarize"; // ✅ restore button text
             }
         });
     </script>
